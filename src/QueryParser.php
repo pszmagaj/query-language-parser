@@ -4,6 +4,7 @@ namespace BrandEmbassy\QueryLanguageParser;
 
 use BrandEmbassy\QueryLanguageParser\Grammar\QueryLanguageGrammarConfiguration;
 use BrandEmbassy\QueryLanguageParser\Grammar\QueryLanguageGrammarFactory;
+use Ferno\Loco\Grammar;
 use Ferno\Loco\GrammarException;
 use Ferno\Loco\ParseFailureException;
 
@@ -19,6 +20,11 @@ final class QueryParser
      */
     private $grammarFactory;
 
+    /**
+     * @var Grammar|null
+     */
+    private $grammar;
+
 
     public function __construct(
         QueryLanguageGrammarConfiguration $grammarConfiguration,
@@ -26,6 +32,7 @@ final class QueryParser
     ) {
         $this->grammarConfiguration = $grammarConfiguration;
         $this->grammarFactory = $grammarFactory;
+        $this->grammar = null;
     }
 
 
@@ -36,15 +43,22 @@ final class QueryParser
      */
     public function parse(string $query)
     {
-        $fields = $this->grammarConfiguration->getFields();
-        $operators = $this->grammarConfiguration->getOperators();
-
         try {
-            $grammar = $this->grammarFactory->create($fields, $operators);
+            if ($this->grammar === null) {
+                $fields = $this->grammarConfiguration->getFields();
+                $operators = $this->grammarConfiguration->getOperators();
+                $this->grammar = $this->grammarFactory->create($fields, $operators);
+            }
 
-            return $grammar->parse($query);
+            return $this->grammar->parse($query);
         } catch (GrammarException | ParseFailureException $e) {
             throw UnableToParseQueryException::byOtherException($e);
         }
+    }
+
+
+    public function clearGrammarCache(): void
+    {
+        $this->grammar = null;
     }
 }
